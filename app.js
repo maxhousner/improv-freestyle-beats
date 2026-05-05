@@ -15,18 +15,11 @@ const SCALES = {
   pentMinor:  [0, 3, 5, 7, 10]
 };
 
-const PRESETS = {
-  'i–VI–III–VII (minor anthem)': [0, 5, 2, 6],
-  'I–IV–V–I (classic)':          [0, 3, 4, 0],
-  'ii–V–I (jazz)':               [1, 4, 0, 0],
-  'i–VII–VI–VII (epic minor)':   [0, 6, 5, 6],
-  'I–V–vi–IV (pop)':             [0, 4, 5, 3]
-};
-
 // ---------- Beat styles ----------
 const STYLES = {
   boombap: {
     name: 'Boom Bap', bpm: 92, swing: 24, seventh: false,
+    progression: [0, 5, 6, 4],
     pattern: {
       kick:  [1,0,0,0, 0,0,0,0, 0,0,1,0, 0,0,0,0],
       snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
@@ -36,6 +29,7 @@ const STYLES = {
   },
   trap: {
     name: 'Trap', bpm: 142, swing: 0, seventh: false,
+    progression: [0, 6, 5, 4],
     pattern: {
       kick:  [1,0,0,0, 0,0,1,0, 0,0,1,0, 0,0,0,0],
       snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
@@ -45,6 +39,7 @@ const STYLES = {
   },
   lofi: {
     name: 'Lo-fi', bpm: 78, swing: 50, seventh: true,
+    progression: [1, 4, 0, 5],
     pattern: {
       kick:  [1,0,0,0, 0,0,0,0, 0,0,1,0, 0,0,0,0],
       snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
@@ -54,6 +49,7 @@ const STYLES = {
   },
   drill: {
     name: 'Drill', bpm: 144, swing: 0, seventh: false,
+    progression: [0, 3, 6, 5],
     pattern: {
       kick:  [1,0,0,0, 0,0,1,0, 0,0,1,1, 0,0,0,0],
       snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
@@ -63,6 +59,7 @@ const STYLES = {
   },
   jazzhop: {
     name: 'Jazz-hop', bpm: 88, swing: 40, seventh: true,
+    progression: [1, 4, 0, 5],
     pattern: {
       kick:  [1,0,0,0, 0,0,0,1, 0,0,0,0, 0,1,0,0],
       snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
@@ -79,6 +76,15 @@ const TRACKS = [
   { id: 'oh',    label: 'Open Hat' }
 ];
 
+// ---------- Chord progression presets ----------
+const CHORD_PRESETS = [
+  { name: 'I–V–vi–IV',     scale: 'major', degrees: [0, 4, 5, 3] },
+  { name: 'ii–V–I',        scale: 'major', degrees: [1, 4, 0, 0] },
+  { name: 'I–vi–IV–V',     scale: 'major', degrees: [0, 5, 3, 4] },
+  { name: 'i–VII–VI–VII',  scale: 'minor', degrees: [0, 6, 5, 6] },
+  { name: 'i–VI–III–VII',  scale: 'minor', degrees: [0, 5, 2, 6] }
+];
+
 // ---------- App state ----------
 const state = {
   style: 'boombap',
@@ -87,17 +93,16 @@ const state = {
   master: 0.75,
   key: 0,
   scale: 'minor',
-  barsPerChord: 1,
+  chordsPerBar: 1,
   pattern: emptyPattern(),
   volumes: { kick: 1.0, snare: 0.85, hh: 0.45, oh: 0.45 },
   muted:   { kick: false, snare: false, hh: false, oh: false },
   chordSlots: [
     { degree: 0, on: true },
     { degree: 5, on: true },
-    { degree: 2, on: true },
-    { degree: 6, on: true }
+    { degree: 6, on: true },
+    { degree: 4, on: true }
   ],
-  chordMode: 'random',
   currentStep: 0,
   globalStep: 0,
   currentChord: 0
@@ -353,7 +358,7 @@ function scheduleEvents(step, time) {
     }
   });
 
-  const period = 16 * state.barsPerChord;
+  const period = Math.max(1, Math.floor(16 / state.chordsPerBar));
   if (state.globalStep % period === 0) {
     const chordIdx = Math.floor(state.globalStep / period) % 4;
     state.currentChord = chordIdx;
@@ -422,10 +427,16 @@ function renderGrid() {
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
   TRACKS.forEach(t => {
+    const track = document.createElement('div');
+    track.className = 'track';
+
+    const head = document.createElement('div');
+    head.className = 'track-head';
+
     const label = document.createElement('div');
     label.className = 'track-label';
     label.textContent = t.label;
-    grid.appendChild(label);
+    head.appendChild(label);
 
     const vol = document.createElement('input');
     vol.type = 'range';
@@ -434,7 +445,7 @@ function renderGrid() {
     vol.value = Math.round(state.volumes[t.id] * 100);
     vol.title = `${t.label} volume`;
     vol.addEventListener('input', () => { state.volumes[t.id] = vol.value / 100; });
-    grid.appendChild(vol);
+    head.appendChild(vol);
 
     const mute = document.createElement('button');
     mute.className = 'track-mute' + (state.muted[t.id] ? ' muted' : '');
@@ -444,8 +455,12 @@ function renderGrid() {
       state.muted[t.id] = !state.muted[t.id];
       mute.classList.toggle('muted', state.muted[t.id]);
     });
-    grid.appendChild(mute);
+    head.appendChild(mute);
 
+    track.appendChild(head);
+
+    const steps = document.createElement('div');
+    steps.className = 'track-steps';
     for (let i = 0; i < 16; i++) {
       const step = document.createElement('div');
       step.className = 'step' + (i % 4 === 0 ? ' beat-marker' : '');
@@ -456,8 +471,11 @@ function renderGrid() {
         state.pattern[t.id][i] = state.pattern[t.id][i] ? 0 : 1;
         step.classList.toggle('on');
       });
-      grid.appendChild(step);
+      steps.appendChild(step);
     }
+    track.appendChild(steps);
+
+    grid.appendChild(track);
   });
 }
 
@@ -466,86 +484,74 @@ function highlightStep(step) {
   document.querySelectorAll(`.step[data-step="${step}"]`).forEach(el => el.classList.add('playing'));
 }
 
+function updateMuteAllLabel() {
+  const btn = document.getElementById('muteAllChordsBtn');
+  if (!btn) return;
+  const allOff = state.chordSlots.every(s => !s.on);
+  btn.textContent = allOff ? 'Unmute All' : 'Mute All';
+}
+
 function renderChordSlots() {
   const wrap = document.getElementById('chordSlots');
   wrap.innerHTML = '';
+  const sc = getChordScale();
   state.chordSlots.forEach((slot, i) => {
     const el = document.createElement('div');
     el.className = 'chord-slot' + (slot.on ? ' on' : ' off');
     el.dataset.idx = i;
-    el.innerHTML = `
-      <div class="name">${chordName(slot.degree)}</div>
-      <div class="deg">${chordRoman(slot.degree)}</div>
-      <div class="toggle">${slot.on ? 'On — click to mute' : 'Off — click to enable'}</div>
-    `;
-    el.addEventListener('click', () => {
-      slot.on = !slot.on;
-      renderChordSlots();
-    });
-    wrap.appendChild(el);
-  });
-}
 
-function highlightChord(idx) {
-  document.querySelectorAll('.chord-slot.playing').forEach(el => el.classList.remove('playing'));
-  const el = document.querySelector(`.chord-slot[data-idx="${idx}"]`);
-  if (el) el.classList.add('playing');
-}
-
-function populateBuilder() {
-  const row = document.getElementById('builderRow');
-  row.innerHTML = '';
-  const sc = getChordScale();
-  for (let slot = 0; slot < 4; slot++) {
     const sel = document.createElement('select');
+    sel.title = 'Change chord';
     for (let d = 0; d < sc.length; d++) {
       const opt = document.createElement('option');
       opt.value = d;
       opt.textContent = `${chordRoman(d)} — ${chordName(d)}`;
       sel.appendChild(opt);
     }
-    sel.value = Math.min(state.chordSlots[slot].degree, sc.length - 1);
+    sel.value = Math.min(slot.degree, sc.length - 1);
+    el.appendChild(sel);
+
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.textContent = chordName(slot.degree);
+    el.appendChild(name);
+
+    const deg = document.createElement('div');
+    deg.className = 'deg';
+    deg.textContent = chordRoman(slot.degree);
+    el.appendChild(deg);
+
     sel.addEventListener('change', () => {
-      state.chordSlots[slot].degree = parseInt(sel.value, 10);
-      renderChordSlots();
+      slot.degree = parseInt(sel.value, 10);
+      name.textContent = chordName(slot.degree);
+      deg.textContent = chordRoman(slot.degree);
     });
-    row.appendChild(sel);
-  }
-}
 
-function getCustomPresets() {
-  try { return JSON.parse(localStorage.getItem('customChordPresets') || '[]'); }
-  catch { return []; }
-}
-function saveCustomPresetsList(arr) {
-  localStorage.setItem('customChordPresets', JSON.stringify(arr));
-}
+    const mute = document.createElement('button');
+    mute.className = 'mute';
+    mute.textContent = 'M';
+    mute.title = slot.on ? 'Mute chord' : 'Unmute chord';
+    mute.addEventListener('mousedown', e => e.stopPropagation());
+    mute.addEventListener('click', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      slot.on = !slot.on;
+      el.classList.toggle('on', slot.on);
+      el.classList.toggle('off', !slot.on);
+      mute.title = slot.on ? 'Mute chord' : 'Unmute chord';
+      updateMuteAllLabel();
+    });
+    el.appendChild(mute);
 
-function populatePresets() {
-  const sel = document.getElementById('presetSelect');
-  sel.innerHTML = '';
-  const og = document.createElement('optgroup');
-  og.label = 'Built-in';
-  Object.keys(PRESETS).forEach(name => {
-    const o = document.createElement('option');
-    o.value = `built:${name}`;
-    o.textContent = name;
-    og.appendChild(o);
+    wrap.appendChild(el);
   });
-  sel.appendChild(og);
+  updateMuteAllLabel();
+}
 
-  const customs = getCustomPresets();
-  if (customs.length) {
-    const cg = document.createElement('optgroup');
-    cg.label = 'Custom';
-    customs.forEach((c, i) => {
-      const o = document.createElement('option');
-      o.value = `custom:${i}`;
-      o.textContent = c.name;
-      cg.appendChild(o);
-    });
-    sel.appendChild(cg);
-  }
+function highlightChord(idx) {
+  document.querySelectorAll('.chord-slot.playing').forEach(el => el.classList.remove('playing'));
+  const el = document.querySelector(`.chord-slot[data-idx="${idx}"]`);
+  if (el) el.classList.add('playing');
 }
 
 // ---------- Style application ----------
@@ -557,10 +563,18 @@ function applyStyle(styleKey) {
   state.pattern = JSON.parse(JSON.stringify(s.pattern));
   document.getElementById('swing').value = state.swing;
   document.getElementById('swingVal').textContent = state.swing + '%';
-  document.querySelectorAll('#styleTabs .pill').forEach(b => {
+
+  const max = getChordScale().length;
+  state.chordSlots.forEach((slot, i) => {
+    slot.degree = (s.progression[i] || 0) % max;
+    slot.on = true;
+  });
+
+  document.querySelectorAll('#styleTabs button').forEach(b => {
     b.classList.toggle('active', b.dataset.style === styleKey);
   });
   renderGrid();
+  renderChordSlots();
 }
 
 function setBPM(bpm) {
@@ -605,6 +619,18 @@ function randomizeBeat() {
   renderGrid();
 }
 
+// ---------- Chord preset application ----------
+function applyChordPreset(preset) {
+  state.scale = preset.scale;
+  document.getElementById('scale').value = preset.scale;
+  const max = getChordScale().length;
+  state.chordSlots.forEach((slot, i) => {
+    slot.degree = (preset.degrees[i] || 0) % max;
+    slot.on = true;
+  });
+  renderChordSlots();
+}
+
 // ---------- Random progression ----------
 function randomProgression() {
   const sc = getChordScale();
@@ -617,7 +643,6 @@ function randomProgression() {
   }
   state.chordSlots.forEach((slot, i) => { slot.degree = prog[i]; slot.on = true; });
   renderChordSlots();
-  populateBuilder();
 }
 
 // ---------- Tap tempo ----------
@@ -636,7 +661,7 @@ function tap() {
 
 // ---------- Init / wiring ----------
 function init() {
-  // key dropdown
+  // Key dropdown
   const keySel = document.getElementById('key');
   NOTE_NAMES.forEach((n, i) => {
     const o = document.createElement('option');
@@ -647,7 +672,6 @@ function init() {
   keySel.addEventListener('change', () => {
     state.key = parseInt(keySel.value, 10);
     renderChordSlots();
-    populateBuilder();
   });
 
   document.getElementById('scale').value = state.scale;
@@ -656,7 +680,6 @@ function init() {
     const max = getChordScale().length;
     state.chordSlots.forEach(s => { if (s.degree >= max) s.degree = s.degree % max; });
     renderChordSlots();
-    populateBuilder();
   });
 
   // BPM slider + number input (mirrored)
@@ -685,15 +708,14 @@ function init() {
     if (masterGain) masterGain.gain.setTargetAtTime(state.master, ctx.currentTime, 0.02);
   });
 
-  document.getElementById('barsPerChord').addEventListener('change', e => {
-    state.barsPerChord = parseInt(e.target.value, 10);
+  document.getElementById('chordsPerBar').addEventListener('change', e => {
+    state.chordsPerBar = parseInt(e.target.value, 10);
   });
 
-  // Style pills
+  // Style segmented control
   const tabs = document.getElementById('styleTabs');
   Object.keys(STYLES).forEach(key => {
     const btn = document.createElement('button');
-    btn.className = 'pill';
     btn.textContent = STYLES[key].name;
     btn.dataset.style = key;
     btn.addEventListener('click', () => applyStyle(key));
@@ -701,57 +723,33 @@ function init() {
   });
   applyStyle('boombap');
 
+  // Chord preset segmented control
+  const chordPresetTabs = document.getElementById('chordPresets');
+  CHORD_PRESETS.forEach((p, i) => {
+    const btn = document.createElement('button');
+    btn.textContent = p.name;
+    btn.dataset.idx = i;
+    btn.addEventListener('click', () => {
+      applyChordPreset(p);
+      chordPresetTabs.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+    chordPresetTabs.appendChild(btn);
+  });
+
   // Transport
   document.getElementById('playBtn').addEventListener('click', () => {
     if (isPlaying) stop(); else start();
   });
   document.getElementById('tapBtn').addEventListener('click', tap);
   document.getElementById('randBeatBtn').addEventListener('click', randomizeBeat);
-
-  // Chord tabs
-  document.querySelectorAll('#chordTabs .pill').forEach(p => {
-    p.addEventListener('click', () => {
-      document.querySelectorAll('#chordTabs .pill').forEach(x => x.classList.remove('active'));
-      p.classList.add('active');
-      state.chordMode = p.dataset.mode;
-      ['Random', 'Presets', 'Builder'].forEach(m => {
-        document.getElementById('chord' + m).classList.toggle('hidden', m.toLowerCase() !== state.chordMode);
-      });
-    });
-  });
-
   document.getElementById('randChordBtn').addEventListener('click', randomProgression);
 
-  populatePresets();
-  document.getElementById('loadPresetBtn').addEventListener('click', () => {
-    const v = document.getElementById('presetSelect').value;
-    let degrees;
-    if (v.startsWith('built:')) {
-      degrees = PRESETS[v.slice(6)];
-    } else if (v.startsWith('custom:')) {
-      const c = getCustomPresets()[parseInt(v.slice(7), 10)];
-      degrees = c && c.degrees;
-    }
-    if (!degrees) return;
-    const max = getChordScale().length;
-    state.chordSlots.forEach((s, i) => {
-      s.degree = (degrees[i] || 0) % max;
-      s.on = true;
-    });
+  document.getElementById('muteAllChordsBtn').addEventListener('click', () => {
+    const allOff = state.chordSlots.every(s => !s.on);
+    state.chordSlots.forEach(s => { s.on = allOff; });
     renderChordSlots();
-    populateBuilder();
   });
-  document.getElementById('saveCustomBtn').addEventListener('click', () => {
-    const name = prompt('Name for this progression?');
-    if (!name) return;
-    const customs = getCustomPresets();
-    customs.push({ name, degrees: state.chordSlots.map(s => s.degree) });
-    saveCustomPresetsList(customs);
-    populatePresets();
-  });
-
-  populateBuilder();
-  renderChordSlots();
 }
 
 document.addEventListener('DOMContentLoaded', init);

@@ -3,38 +3,23 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Musical Improv Freestyle Practice Tool</title>
+<title>BeatsByMax — Musical Improv Freestyle Practice Tool</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 <div class="app">
   <header>
-    <h1>Musical Improv Freestyle Practice Tool</h1>
+    <h1 class="brand">BeatsByMax</h1>
+    <div class="subtitle">Musical Improv Freestyle Practice Tool</div>
   </header>
 
   <section class="transport card">
-    <div class="transport-top">
+    <div class="transport-row">
       <button id="playBtn" class="primary play-btn">Play</button>
       <div class="control control-master">
-        <label for="master">Master Volume <span id="masterVal">75%</span></label>
+        <label for="master">Master Volume <span id="masterVal" class="num">75%</span></label>
         <input type="range" id="master" min="0" max="100" value="75" />
       </div>
-    </div>
-    <div id="styleTabs" class="pill-row" role="tablist" aria-label="Beat style"></div>
-  </section>
-
-  <section class="globals card">
-    <div class="control control-bpm">
-      <label for="bpmNum">BPM</label>
-      <div class="bpm-row">
-        <input type="number" id="bpmNum" min="60" max="240" value="92" />
-        <button id="tapBtn" class="tap-btn">Tap</button>
-        <input type="range" id="bpm" min="60" max="240" value="92" />
-      </div>
-    </div>
-    <div class="control">
-      <label for="swing">Swing <span id="swingVal">0%</span></label>
-      <input type="range" id="swing" min="0" max="66" value="0" />
     </div>
   </section>
 
@@ -43,11 +28,37 @@
       <h2>Drums</h2>
       <button id="randBeatBtn">Randomize Beat</button>
     </div>
+
+    <div id="styleTabs" class="segmented drum-presets" role="tablist" aria-label="Drum preset"></div>
+
+    <div class="tempo-grid">
+      <div class="control control-bpm">
+        <label for="bpm">
+          <span>BPM</span>
+          <span class="bpm-extras">
+            <input type="number" id="bpmNum" class="num" min="60" max="240" value="92" />
+            <button id="tapBtn" class="tap-btn">Tap</button>
+          </span>
+        </label>
+        <input type="range" id="bpm" min="60" max="240" value="92" />
+      </div>
+      <div class="control">
+        <label for="swing">Swing <span id="swingVal" class="num">0%</span></label>
+        <input type="range" id="swing" min="0" max="66" value="0" />
+      </div>
+    </div>
+
     <div id="grid" class="grid"></div>
   </section>
 
   <section class="chords card">
-    <h2>Chords</h2>
+    <div class="card-head">
+      <h2>Chords</h2>
+      <div class="card-actions">
+        <button id="muteAllChordsBtn">Mute All</button>
+        <button id="randChordBtn">Randomize</button>
+      </div>
+    </div>
 
     <div class="chord-globals">
       <div class="control">
@@ -66,35 +77,16 @@
         </select>
       </div>
       <div class="control">
-        <label for="barsPerChord">Bars per Chord</label>
-        <select id="barsPerChord">
+        <label for="chordsPerBar">Chords per Bar</label>
+        <select id="chordsPerBar">
           <option value="1" selected>1</option>
           <option value="2">2</option>
+          <option value="4">4</option>
         </select>
       </div>
     </div>
 
-    <div class="pill-row" id="chordTabs">
-      <button class="pill active" data-mode="random">Random</button>
-      <button class="pill" data-mode="presets">Presets</button>
-      <button class="pill" data-mode="builder">Builder</button>
-    </div>
-
-    <div class="chord-mode" id="chordRandom">
-      <button id="randChordBtn" class="primary">Generate Random Progression</button>
-    </div>
-
-    <div class="chord-mode hidden" id="chordPresets">
-      <div class="preset-row">
-        <select id="presetSelect"></select>
-        <button id="loadPresetBtn">Load</button>
-        <button id="saveCustomBtn">Save Current as Custom</button>
-      </div>
-    </div>
-
-    <div class="chord-mode hidden" id="chordBuilder">
-      <div class="builder-row" id="builderRow"></div>
-    </div>
+    <div class="chord-presets segmented" id="chordPresets" aria-label="Chord progression preset"></div>
 
     <div class="chord-slots" id="chordSlots"></div>
   </section>
