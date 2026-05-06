@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>BeatsByMax — Musical Improv Freestyle Practice Tool</title>
+<title>BeatsByMax</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -31,7 +31,18 @@
   <section class="sequencer card">
     <div class="card-head">
       <h2>Drums</h2>
-      <button id="randBeatBtn">Randomize Beat</button>
+      <div class="card-actions">
+        <button id="randBeatBtn">Randomize</button>
+        <div class="section-mixer" id="drumsMixer">
+          <button class="section-mixer-toggle" type="button" title="Drums mixer" aria-label="Drums mixer">
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><rect x="2" y="4" width="2" height="8"/><rect x="7" y="2" width="2" height="12"/><rect x="12" y="6" width="2" height="6"/></svg>
+          </button>
+          <div class="section-mixer-controls">
+            <input type="range" class="section-vol" id="drumsVol" min="0" max="100" value="90" aria-label="Drums volume" />
+            <button class="section-mute" id="drumsMute" type="button" title="Mute drums">M</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="tempo-and-preset">
@@ -63,8 +74,16 @@
     <div class="card-head">
       <h2>Chords</h2>
       <div class="card-actions">
-        <button id="muteAllChordsBtn">Mute All</button>
         <button id="randChordBtn">Randomize</button>
+        <div class="section-mixer" id="chordsMixer">
+          <button class="section-mixer-toggle" type="button" title="Chords mixer" aria-label="Chords mixer">
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><rect x="2" y="4" width="2" height="8"/><rect x="7" y="2" width="2" height="12"/><rect x="12" y="6" width="2" height="6"/></svg>
+          </button>
+          <div class="section-mixer-controls">
+            <input type="range" class="section-vol" id="chordsVol" min="0" max="100" value="40" aria-label="Chords volume" />
+            <button class="section-mute" id="chordsMute" type="button" title="Mute chords">M</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -77,7 +96,7 @@
         <label for="scale">Scale</label>
         <select id="scale">
           <option value="major">Major</option>
-          <option value="minor" selected>Natural Minor</option>
+          <option value="minor" selected>Minor</option>
           <option value="dorian">Dorian</option>
           <option value="phrygian">Phrygian</option>
           <option value="mixolydian">Mixolydian</option>

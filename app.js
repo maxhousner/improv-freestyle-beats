@@ -92,6 +92,8 @@ const state = {
   pattern: emptyPattern(),
   volumes: { kick: 1.0, snare: 0.85, hh: 0.45, oh: 0.45 },
   muted:   { kick: false, snare: false, hh: false, oh: false },
+  sectionVolumes: { drums: 0.9, chords: 0.4 },
+  sectionMuted:   { drums: false, chords: false },
   chordSlots: [
     { degree: 0, on: true },
     { degree: 5, on: true },
@@ -126,11 +128,11 @@ function initAudio() {
   masterGain.connect(ctx.destination);
 
   drumsGain = ctx.createGain();
-  drumsGain.gain.value = 0.9;
+  drumsGain.gain.value = state.sectionMuted.drums ? 0 : state.sectionVolumes.drums;
   drumsGain.connect(masterGain);
 
   chordsGain = ctx.createGain();
-  chordsGain.gain.value = 0.55;
+  chordsGain.gain.value = state.sectionMuted.chords ? 0 : state.sectionVolumes.chords;
   chordsGain.connect(masterGain);
 
   const len = ctx.sampleRate * 2;
@@ -341,6 +343,7 @@ function scheduleEvents(step, time) {
     if (state.muted[t.id]) return;
     if (!state.pattern[t.id][step]) return;
     const v = state.volumes[t.id];
+    if (v <= 0) return;
     switch (t.id) {
       case 'kick':  playKick(time, 1.0 * v); break;
       case 'snare': {
@@ -516,11 +519,11 @@ function highlightStep(step) {
   document.querySelectorAll(`.step[data-step="${step}"]`).forEach(el => el.classList.add('playing'));
 }
 
-function updateMuteAllLabel() {
-  const btn = document.getElementById('muteAllChordsBtn');
-  if (!btn) return;
-  const allOff = state.chordSlots.every(s => !s.on);
-  btn.textContent = allOff ? 'Unmute All' : 'Mute All';
+function applySectionGain(section) {
+  if (!ctx) return;
+  const g = section === 'drums' ? drumsGain : chordsGain;
+  const v = state.sectionMuted[section] ? 0 : state.sectionVolumes[section];
+  g.gain.setTargetAtTime(v, ctx.currentTime, 0.02);
 }
 
 function renderChordSlots() {
@@ -571,13 +574,11 @@ function renderChordSlots() {
       el.classList.toggle('on', slot.on);
       el.classList.toggle('off', !slot.on);
       mute.title = slot.on ? 'Mute chord' : 'Unmute chord';
-      updateMuteAllLabel();
     });
     el.appendChild(mute);
 
     wrap.appendChild(el);
   });
-  updateMuteAllLabel();
 }
 
 function highlightChord(idx) {
@@ -748,12 +749,6 @@ function init() {
 
   // Chord preset dropdown
   const chordSel = document.getElementById('chordPreset');
-  const placeholder = document.createElement('option');
-  placeholder.value = '';
-  placeholder.textContent = 'Choose a progression…';
-  placeholder.disabled = true;
-  placeholder.selected = true;
-  chordSel.appendChild(placeholder);
   CHORD_PRESETS.forEach((p, i) => {
     const opt = document.createElement('option');
     opt.value = String(i);
@@ -764,6 +759,7 @@ function init() {
     const idx = parseInt(chordSel.value, 10);
     if (!isNaN(idx)) applyChordPreset(CHORD_PRESETS[idx]);
   });
+  applyChordPreset(CHORD_PRESETS[0]);
 
   // Transport
   document.getElementById('playBtn').addEventListener('click', () => {
@@ -773,10 +769,36 @@ function init() {
   document.getElementById('randBeatBtn').addEventListener('click', randomizeBeat);
   document.getElementById('randChordBtn').addEventListener('click', randomProgression);
 
-  document.getElementById('muteAllChordsBtn').addEventListener('click', () => {
-    const allOff = state.chordSlots.every(s => !s.on);
-    state.chordSlots.forEach(s => { s.on = allOff; });
-    renderChordSlots();
+  // Section mixers (drums + chords) — icon button toggles popover with vol slider + mute
+  ['drums', 'chords'].forEach(section => {
+    const wrap = document.getElementById(section + 'Mixer');
+    const toggle = wrap.querySelector('.section-mixer-toggle');
+    const vol = wrap.querySelector('.section-vol');
+    const mute = wrap.querySelector('.section-mute');
+
+    vol.value = Math.round(state.sectionVolumes[section] * 100);
+    mute.classList.toggle('muted', state.sectionMuted[section]);
+
+    toggle.addEventListener('click', e => {
+      e.stopPropagation();
+      const wasOpen = wrap.classList.contains('open');
+      closeOpenTrackPopover();
+      if (!wasOpen) {
+        wrap.classList.add('open');
+        openTrackPopover = wrap;
+      }
+    });
+    wrap.querySelector('.section-mixer-controls').addEventListener('click', e => e.stopPropagation());
+
+    vol.addEventListener('input', () => {
+      state.sectionVolumes[section] = vol.value / 100;
+      applySectionGain(section);
+    });
+    mute.addEventListener('click', () => {
+      state.sectionMuted[section] = !state.sectionMuted[section];
+      mute.classList.toggle('muted', state.sectionMuted[section]);
+      applySectionGain(section);
+    });
   });
 
   document.addEventListener('click', e => {
